@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    <div id="loading-state" class="text-center">
+        <h1 class="text-2xl font-semibold">Verifying your email...</h1>
+        <p>Please wait a moment.</p>
+        <p id="status-message"></p>
+    </div>
+
+    <script>
+        const supabaseUrl = '__SUPABASE_URL__';
+        const supabaseAnonKey = '__SUPABASE_ANON_KEY__';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        async function handleAuthRedirect() {
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash);
+            const tokenHash = params.get('token_hash');
+            const type = params.get('type');
+            
+            const statusMessage = document.getElementById('status-message');
+
+            if (tokenHash && type === 'email') {
+                const { error } = await supabaseClient.auth.verifyOtp({ token_hash: tokenHash, type: 'email' });
+
+                if (error) {
+                    console.error('Verification error:', error);
+                    statusMessage.innerText = `Error: ${error.message}`;
+                    // Redirect to an error page
+                    window.location.href = 'https://shourya-rath.github.io/supabase-success-page/error.html';
+                } else {
+                    console.log('Verification successful! Redirecting...');
+                    // Verification is complete, redirect to the final success page
+                    window.location.href = 'https://shourya-rath.github.io/supabase-success-page/'; 
+                }
+            } else {
+                // No token found on the initial load, redirect to an error page.
+                window.location.href = 'https://shourya-rath.github.io/supabase-success-page/error.html';
+            }
+        }
+        document.addEventListener('DOMContentLoaded', handleAuthRedirect);
+    </script>
+</body>
+</html>
