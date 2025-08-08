@@ -49,7 +49,7 @@
         </a>
     </div>
 
-        <script>
+<!--         <script>
         // Placeholders will be replaced by GitHub Actions
         const supabaseUrl = '__SUPABASE_URL__';
         const supabaseAnonKey = '__SUPABASE_ANON_KEY__';
@@ -99,6 +99,81 @@
             } else {
                 // This case handles when the user opens the page without a token
                 // or if the token is already expired and Supabase returns a URL without a tokenHash
+                loadingState.classList.add('hidden');
+                errorState.classList.remove('hidden');
+                errorMessage.innerText = 'Invalid or expired verification link. Please request a new one.';
+            }
+        }
+
+        // Call the function when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', handleAuthRedirect);
+    </script> -->
+        <script>
+        // Placeholders will be replaced by GitHub Actions
+        const supabaseUrl = '__SUPABASE_URL__';
+        const supabaseAnonKey = '__SUPABASE_ANON_KEY__';
+        
+        // Create the Supabase client
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        // This function runs on page load
+        async function handleAuthRedirect() {
+            const loadingState = document.getElementById('loading-state');
+            const successState = document.getElementById('success-state');
+            const errorState = document.getElementById('error-state');
+            const errorMessage = document.getElementById('error-message');
+
+            // First, check if there's an active session.
+            // This handles the case where verification succeeded and Supabase reloaded the page.
+            const { data: { session } } = await supabaseClient.auth.getSession();
+
+            if (session) {
+                console.log('Active session found. Verification is successful.');
+                loadingState.classList.add('hidden');
+                successState.classList.remove('hidden');
+                // Optional: Automatically redirect after a delay
+                setTimeout(() => {
+                    window.location.href = document.getElementById('redirect-button').href;
+                }, 3000);
+                return; // Exit the function since we're done
+            }
+
+            // If no session, proceed with the original token verification logic
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash);
+            const tokenHash = params.get('token_hash');
+            const type = params.get('type');
+            const urlError = params.get('error_description');
+
+            // Handle errors passed directly in the URL
+            if (urlError) {
+                loadingState.classList.add('hidden');
+                errorState.classList.remove('hidden');
+                errorMessage.innerText = urlError.replace(/\+/g, ' '); // Replace '+' with spaces
+                return;
+            }
+
+            // Verify the token if it exists in the URL
+            // Note: For email confirmations, Supabase often uses type='signup'
+            if (tokenHash && (type === 'email' || type === 'signup')) {
+                const { error } = await supabaseClient.auth.verifyOtp({ token_hash: tokenHash, type: 'signup' });
+                
+                loadingState.classList.add('hidden');
+                
+                if (error) {
+                    console.error('Verification error:', error);
+                    errorState.classList.remove('hidden');
+                    errorMessage.innerText = `Error verifying your account: ${error.message}`;
+                } else {
+                    // This state may be brief as getSession() on reload will catch the success.
+                    console.log('Verification successful!');
+                    successState.classList.remove('hidden');
+                    setTimeout(() => {
+                        window.location.href = document.getElementById('redirect-button').href;
+                    }, 3000);
+                }
+            } else {
+                // This now correctly handles cases where there's no session AND no token.
                 loadingState.classList.add('hidden');
                 errorState.classList.remove('hidden');
                 errorMessage.innerText = 'Invalid or expired verification link. Please request a new one.';
