@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verifying Account...</title>
-    <!-- Use Tailwind CSS for a modern, responsive design -->
+    <title>Account Verification</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Import Supabase.js -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
@@ -19,13 +17,13 @@
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen">
-    <div id="loading-state" class="text-center">
-        <h1 class="text-2xl font-semibold">Verifying your email...</h1>
-        <p>Please wait a moment.</p>
+    <div id="loading-state" class="text-center p-8 md:p-12 rounded-2xl shadow-xl max-w-lg w-full m-4">
+        <h1 class="text-2xl font-semibold text-gray-800">Verifying your email...</h1>
+        <p class="text-gray-600 mt-2">Please wait a moment.</p>
+        <div id="status-message" class="mt-4 font-medium text-gray-700"></div>
     </div>
 
     <div id="success-state" class="hidden bg-white p-8 md:p-12 rounded-2xl shadow-xl max-w-lg w-full text-center m-4">
-        <!-- SVG for a success icon -->
         <svg class="h-20 w-20 text-emerald-500 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -35,59 +33,79 @@
             Your email address has been successfully verified. You can now return to the application and log in.
         </p>
 
-        <!-- The button to redirect the user back to your app's login page -->
-        <a href="https://your-app-domain.com/login" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
+        <a id="redirect-button" href="https://your-app-domain.com/login" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
             Go to Login Page
         </a>
     </div>
 
+    <div id="error-state" class="hidden bg-white p-8 md:p-12 rounded-2xl shadow-xl max-w-lg w-full text-center m-4">
+        <svg class="h-20 w-20 text-red-500 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Verification Failed</h1>
+        <p id="error-message" class="text-lg text-gray-600 mb-8"></p>
+        <a href="#" onclick="window.location.reload();" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
+            Try Again
+        </a>
+    </div>
+
     <script>
-    // Placeholders will be replaced by GitHub Actions
-    const supabaseUrl = '__SUPABASE_URL__';
-    const supabaseAnonKey = '__SUPABASE_ANON_KEY__';
-    
-    // Create the Supabase client
-    const supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+        // Placeholders will be replaced by GitHub Actions
+        const supabaseUrl = '__SUPABASE_URL__';
+        const supabaseAnonKey = '__SUPABASE_ANON_KEY__';
+        
+        // Create the Supabase client
+        const supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-    // This function runs on page load to check for a verification token
-    async function handleAuthRedirect() {
-        const hash = window.location.hash.substring(1);
-        const params = new URLSearchParams(hash);
-        const tokenHash = params.get('token_hash');
-        const type = params.get('type');
-        const error = params.get('error_description');
+        // This function runs on page load to check for a verification token
+        async function handleAuthRedirect() {
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash);
+            const tokenHash = params.get('token_hash');
+            const type = params.get('type');
 
-        const statusMessage = document.getElementById('status-message');
+            const loadingState = document.getElementById('loading-state');
+            const successState = document.getElementById('success-state');
+            const errorState = document.getElementById('error-state');
+            const errorMessage = document.getElementById('error-message');
 
-        if (error) {
-            // Display any error messages returned from Supabase
-            statusMessage.innerHTML = `Verification failed: ${error}`;
-            return;
-        }
-
-        if (tokenHash && type === 'email') {
-            const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'email' });
-
-            if (error) {
-                console.error('Verification error:', error);
-                statusMessage.innerHTML = `Error verifying your account: ${error.message}`;
-            } else {
-                console.log('Verification successful:', data);
-                // The account is now verified. You can update the UI.
-                statusMessage.innerHTML = 'Account confirmed successfully! Redirecting you now...';
-                // Redirect the user to your login page
-                setTimeout(() => {
-                    window.location.href = 'https://your-app-domain.com/login';
-                }, 3000);
+            // Handle URL-based errors first
+            const urlError = params.get('error_description');
+            if (urlError) {
+                loadingState.classList.add('hidden');
+                errorState.classList.remove('hidden');
+                errorMessage.innerText = urlError.replace(/\+/g, ' '); // Replace '+' with spaces
+                return;
             }
-        } else {
-            // No token found, so just display a generic success message
-            statusMessage.innerHTML = 'Your account has been confirmed.';
-        }
-    }
 
-    // Call the function when the DOM is fully loaded
-    document.addEventListener('DOMContentLoaded', handleAuthRedirect);
-</script>
+            if (tokenHash && type === 'email') {
+                const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'email' });
+                
+                loadingState.classList.add('hidden');
+                
+                if (error) {
+                    console.error('Verification error:', error);
+                    errorState.classList.remove('hidden');
+                    errorMessage.innerText = `Error verifying your account: ${error.message}`;
+                } else {
+                    console.log('Verification successful!');
+                    successState.classList.remove('hidden');
+                    // Optional: Automatically redirect the user after a short delay
+                    setTimeout(() => {
+                        window.location.href = document.getElementById('redirect-button').href;
+                    }, 3000);
+                }
+            } else {
+                // This case handles when the user opens the page without a token
+                // or if the token is already expired and Supabase returns a URL without a tokenHash
+                loadingState.classList.add('hidden');
+                errorState.classList.remove('hidden');
+                errorMessage.innerText = 'Invalid or expired verification link. Please request a new one.';
+            }
+        }
+
+        // Call the function when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', handleAuthRedirect);
+    </script>
 </body>
 </html>
