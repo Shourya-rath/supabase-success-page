@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Confirmed</title>
+    <title>Verifying Account...</title>
     <!-- Use Tailwind CSS for a modern, responsive design -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Import Supabase.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -17,7 +19,12 @@
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 md:p-12 rounded-2xl shadow-xl max-w-lg w-full text-center m-4">
+    <div id="loading-state" class="text-center">
+        <h1 class="text-2xl font-semibold">Verifying your email...</h1>
+        <p>Please wait a moment.</p>
+    </div>
+
+    <div id="success-state" class="hidden bg-white p-8 md:p-12 rounded-2xl shadow-xl max-w-lg w-full text-center m-4">
         <!-- SVG for a success icon -->
         <svg class="h-20 w-20 text-emerald-500 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -25,7 +32,7 @@
 
         <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Account Confirmed!</h1>
         <p class="text-lg text-gray-600 mb-8">
-            Your email address has been successfully verified. You can now return to the application and log in with your new account.
+            Your email address has been successfully verified. You can now return to the application and log in.
         </p>
 
         <!-- The button to redirect the user back to your app's login page -->
@@ -33,5 +40,21 @@
             Go to Login Page
         </a>
     </div>
+
+    <script type="module">
+        // Placeholders will be replaced by GitHub Actions
+        const supabaseUrl = '__SUPABASE_URL__';
+        const supabaseAnonKey = '__SUPABASE_ANON_KEY__';
+        
+        const { createClient } = supabase;
+        const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN') {
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('success-state').classList.remove('hidden');
+            }
+        });
+    </script>
 </body>
 </html>
