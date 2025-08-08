@@ -49,13 +49,13 @@
         </a>
     </div>
 
-    <script>
+        <script>
         // Placeholders will be replaced by GitHub Actions
         const supabaseUrl = '__SUPABASE_URL__';
         const supabaseAnonKey = '__SUPABASE_ANON_KEY__';
-        
-        // Create the Supabase client
-        const supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        // Create the Supabase client using a different variable name
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
         // This function runs on page load to check for a verification token
         async function handleAuthRedirect() {
@@ -79,10 +79,11 @@
             }
 
             if (tokenHash && type === 'email') {
-                const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'email' });
-                
+                // Use the newly named supabaseClient
+                const { error } = await supabaseClient.auth.verifyOtp({ token_hash: tokenHash, type: 'email' });
+
                 loadingState.classList.add('hidden');
-                
+
                 if (error) {
                     console.error('Verification error:', error);
                     errorState.classList.remove('hidden');
